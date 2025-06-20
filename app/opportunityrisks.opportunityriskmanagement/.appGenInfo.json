@@ -1,0 +1,26 @@
+{
+  "generationParameters": {
+    "generationDate": "Fri Jun 20 2025 12:59:11 GMT+0000 (Coordinated Universal Time)",
+    "generatorPlatform": "SAP Business Application Studio",
+    "serviceType": "Local Cap",
+    "metadataFilename": "",
+    "serviceUrl": "http://localhost:4004/opportunity-risks/",
+    "appName": "opportunityrisks.opportunityriskmanagement",
+    "appTitle": "Opportunity Risk Management",
+    "appDescription": "My SAP application",
+    "appNamespace": "",
+    "ui5Theme": "sap_horizon",
+    "ui5Version": "1.120.13",
+    "showMockDataInfo": false,
+    "generatorVersion": "1.18.0",
+    "template": "List Report Page V4",
+    "generatorName": "SAP Fiori Application Generator",
+    "entityRelatedConfig": [
+      {
+        "type": "Main Entity",
+        "value": "Risk"
+      }
+    ],
+    "launchText": "In order to launch the generated app, simply start your CAP project and navigate to the following location in your browser:\n\nhttp://localhost:4004/opportunityrisks.opportunityriskmanagement/webapp/index.html"
+  }
+}

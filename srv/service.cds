@@ -1,11 +1,16 @@
-using {OpportunityRisks as my} from '../db/schema.cds';
+using { OpportunityRisks } from '../db/schema';
 
-@path: '/service/OpportunityRisksService'
+@path: '/opportunity-risks'
 service OpportunityRisksService {
-    @odata.draft.enabled
-    entity Opportunity as projection on my.Opportunity;
-
-    entity Risk        as projection on my.Risk;
+  
+  // Risk management entities
+  entity Risk as projection on OpportunityRisks.Risk;
+  
+  // External opportunities from SAP CRM (read-only)
+  @readonly
+  entity Opportunity as projection on OpportunityRisks.Opportunity;
+  
+  // Actions
+  action refreshOpportunities() returns String;
+  action createRiskForOpportunity(opportunityID: String, title: String, description: String, impact: String, probability: String) returns Risk;
 }
-
-annotate OpportunityRisksService with @requires: ['authenticated-user'];

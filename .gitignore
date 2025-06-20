@@ -9,6 +9,11 @@ gen/
 node_modules/
 target/
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # Web IDE, App Studio
 .che/
 .gen/
