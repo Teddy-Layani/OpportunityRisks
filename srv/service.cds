@@ -6,9 +6,13 @@ service OpportunityRisksService {
   // Risk management entities
   entity Risk as projection on OpportunityRisks.Risk;
   
-  // External opportunities from SAP CRM (read-only)
+  // External opportunities from SAP CRM (read-only) with navigation to risks
   @readonly
-  entity Opportunity as projection on OpportunityRisks.Opportunity;
+  entity Opportunity as projection on OpportunityRisks.Opportunity {
+    *,
+    // Navigation property to get risks for this opportunity
+    risks : Association to many Risk on risks.opportunityID = $self.ID
+  };
   
   // Actions
   action refreshOpportunities() returns String;

@@ -98,28 +98,38 @@
       "routes": [
         {
           "pattern": ":?query:",
-          "name": "RiskList",
-          "target": "RiskList"
+          "name": "OpportunityList",
+          "target": "OpportunityList"
+        },
+        {
+          "pattern": "Opportunity({key}):?query:",
+          "name": "OpportunityObjectPage",
+          "target": "OpportunityObjectPage"
+        },
+        {
+          "pattern": "Opportunity({key})/risks({key2}):?query:",
+          "name": "RiskObjectPage",
+          "target": "RiskObjectPage"
         },
         {
           "pattern": "Risk({key}):?query:",
-          "name": "RiskObjectPage",
+          "name": "RiskDirectAccess",
           "target": "RiskObjectPage"
         }
       ],
       "targets": {
-        "RiskList": {
+        "OpportunityList": {
           "type": "Component",
-          "id": "RiskList",
+          "id": "OpportunityList",
           "name": "sap.fe.templates.ListReport",
           "options": {
             "settings": {
-              "contextPath": "/Risk",
+              "contextPath": "/Opportunity",
               "variantManagement": "Page",
               "navigation": {
-                "Risk": {
+                "Opportunity": {
                   "detail": {
-                    "route": "RiskObjectPage"
+                    "route": "OpportunityObjectPage"
                   }
                 }
               },
@@ -133,6 +143,32 @@
             }
           }
         },
+        "OpportunityObjectPage": {
+          "type": "Component",
+          "id": "OpportunityObjectPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "editableHeaderContent": false,
+              "contextPath": "/Opportunity",
+              "navigation": {
+                "risks": {
+                  "detail": {
+                    "route": "RiskObjectPage"
+                  }
+                }
+              },
+              "controlConfiguration": {
+                "risks/@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "type": "ResponsiveTable",
+                    "enableExport": true
+                  }
+                }
+              }
+            }
+          }
+        },
         "RiskObjectPage": {
           "type": "Component",
           "id": "RiskObjectPage",
@@ -140,7 +176,7 @@
           "options": {
             "settings": {
               "editableHeaderContent": false,
-              "contextPath": "/Risk"
+              "contextPath": "/Opportunity/risks"
             }
           }
         }
