@@ -51,6 +51,7 @@
   },
   "lcap": true,
   "sapux": [
+    "app/opportunityrisks.opportunityriskmanagement",
     "app/opportunityrisks.opportunityriskmanagement"
   ]
 }

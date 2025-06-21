@@ -13,7 +13,7 @@
     "sourceTemplate": {
       "id": "@sap/generator-fiori:lrop",
       "version": "1.18.0",
-      "toolsId": "9975c7b3-6601-47f0-bffa-7fa672fe359b"
+      "toolsId": "a9ba6bce-0268-4d9b-9868-ac28d7bbc465"
     },
     "dataSources": {
       "mainService": {
@@ -105,16 +105,6 @@
           "pattern": "Opportunity({key}):?query:",
           "name": "OpportunityObjectPage",
           "target": "OpportunityObjectPage"
-        },
-        {
-          "pattern": "Opportunity({key})/risks({key2}):?query:",
-          "name": "RiskObjectPage",
-          "target": "RiskObjectPage"
-        },
-        {
-          "pattern": "Risk({key}):?query:",
-          "name": "RiskDirectAccess",
-          "target": "RiskObjectPage"
         }
       ],
       "targets": {
@@ -150,33 +140,7 @@
           "options": {
             "settings": {
               "editableHeaderContent": false,
-              "contextPath": "/Opportunity",
-              "navigation": {
-                "risks": {
-                  "detail": {
-                    "route": "RiskObjectPage"
-                  }
-                }
-              },
-              "controlConfiguration": {
-                "risks/@com.sap.vocabularies.UI.v1.LineItem": {
-                  "tableSettings": {
-                    "type": "ResponsiveTable",
-                    "enableExport": true
-                  }
-                }
-              }
-            }
-          }
-        },
-        "RiskObjectPage": {
-          "type": "Component",
-          "id": "RiskObjectPage",
-          "name": "sap.fe.templates.ObjectPage",
-          "options": {
-            "settings": {
-              "editableHeaderContent": false,
-              "contextPath": "/Opportunity/risks"
+              "contextPath": "/Opportunity"
             }
           }
         }

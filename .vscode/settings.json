@@ -1,5 +1,4 @@
 {
-    "mdk.platform": "iOS & Android & Web",
     "mdk.defaultEditor": "Text Editor",
     "workbench.editorAssociations": {
         "*.app": "default",
