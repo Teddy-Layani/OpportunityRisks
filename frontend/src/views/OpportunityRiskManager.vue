@@ -21,15 +21,17 @@
               </div>
             </div>
             <h2 class="text-xl font-semibold text-gray-700 mb-1">
-              {{ opportunity.name || 'Unnamed Opportunity' }}
+              {{ opportunity.Name || 'Unnamed Opportunity' }}
             </h2>
-            <p class="text-gray-600">
-              {{ opportunity.description || 'No description available' }}
-            </p>
+            <div class="flex items-center space-x-4 text-sm text-gray-600">
+              <span>ID: <code class="bg-gray-100 px-1 rounded">{{ opportunity.OpportunityID || opportunity.ID }}</code></span>
+              <span v-if="opportunity.ExpectedRevenueAmount">Revenue: {{ formatCurrency(opportunity.ExpectedRevenueAmount, opportunity.Currency) }}</span>
+              <span v-if="opportunity.SalesStage">Stage: {{ opportunity.SalesStage }}</span>
+            </div>
           </div>
           <div class="ml-6 flex-shrink-0 flex items-center space-x-3">
-            <span :class="getStatusClass(opportunity.status)" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium">
-              {{ opportunity.status || 'Active' }}
+            <span :class="getStatusClass(opportunity.SalesStage)" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium">
+              {{ opportunity.SalesStage || 'Active' }}
             </span>
           </div>
         </div>
@@ -57,7 +59,7 @@
           </div>
           <div class="bg-gray-50 rounded-lg p-3">
             <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Created</dt>
-            <dd class="mt-1 text-sm text-gray-900">{{ formatDate(opportunity.createdAt) }}</dd>
+            <dd class="mt-1 text-sm text-gray-900">{{ formatDate(opportunity.CreatedOn) }}</dd>
           </div>
           <div class="bg-gray-50 rounded-lg p-3">
             <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Risks</dt>
@@ -166,7 +168,7 @@
                 </div>
               </div>
               
-              <!-- Risk Metrics -->
+              <!-- Risk Metrics - Only show fields that exist in schema -->
               <div class="flex flex-wrap gap-4 mb-3">
                 <div class="flex items-center">
                   <span class="text-xs text-gray-500 uppercase tracking-wide mr-2">Impact:</span>
@@ -186,26 +188,13 @@
                     {{ risk.status || 'Open' }}
                   </span>
                 </div>
-                <div v-if="risk.owner" class="flex items-center">
-                  <span class="text-xs text-gray-500 uppercase tracking-wide mr-2">Owner:</span>
-                  <span class="text-xs text-gray-700 font-medium">{{ risk.owner }}</span>
+                <div class="flex items-center">
+                  <span class="text-xs text-gray-500 uppercase tracking-wide mr-2">Created:</span>
+                  <span class="text-xs text-gray-700 font-medium">{{ formatDate(risk.createdAt) }}</span>
                 </div>
-                <div v-if="risk.dueDate" class="flex items-center">
-                  <span class="text-xs text-gray-500 uppercase tracking-wide mr-2">Due:</span>
-                  <span class="text-xs text-gray-700 font-medium">{{ formatDate(risk.dueDate) }}</span>
-                </div>
-              </div>
-
-              <!-- Risk Mitigation -->
-              <div v-if="risk.mitigation" class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                <div class="flex items-start">
-                  <svg class="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  <div>
-                    <span class="text-blue-800 font-medium">Mitigation Strategy:</span>
-                    <p class="text-blue-700 mt-1">{{ risk.mitigation }}</p>
-                  </div>
+                <div class="flex items-center">
+                  <span class="text-xs text-gray-500 uppercase tracking-wide mr-2">Updated:</span>
+                  <span class="text-xs text-gray-700 font-medium">{{ formatDate(risk.modifiedAt) }}</span>
                 </div>
               </div>
             </div>
@@ -247,6 +236,7 @@
       :is-visible="showCreateRiskModal || showEditRiskModal"
       :risk="selectedRisk"
       :opportunity-id="id"
+      :opportunity-name="opportunity?.Name"
       @close="closeRiskModal"
       @saved="handleRiskSaved"
     />
@@ -355,8 +345,21 @@ export default {
       return apiUtils.formatDate(dateString)
     },
 
+    formatCurrency(amount, currency = 'USD') {
+      if (!amount) return 'N/A'
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency
+      }).format(amount)
+    },
+
     getStatusClass(status) {
       const statusClasses = {
+        '1': 'bg-blue-100 text-blue-800',     // Open/New
+        '2': 'bg-yellow-100 text-yellow-800', // In Process
+        '3': 'bg-orange-100 text-orange-800', // Proposal
+        '4': 'bg-green-100 text-green-800',   // Won
+        '5': 'bg-red-100 text-red-800',       // Lost
         'Active': 'bg-green-100 text-green-800',
         'On Hold': 'bg-yellow-100 text-yellow-800',
         'Closed': 'bg-gray-100 text-gray-800',

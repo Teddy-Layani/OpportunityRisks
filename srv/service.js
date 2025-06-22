@@ -2,7 +2,7 @@ const cds = require('@sap/cds');
 
 module.exports = cds.service.impl(async function() {
   
-  const { Risk, Opportunity } = this.entities; // Note: singular names to match your service.cds
+  const { Risk, Opportunity } = this.entities;
   
   // SAP CRM API Configuration
   const CRM_CONFIG = {
@@ -18,7 +18,6 @@ module.exports = cds.service.impl(async function() {
       'DataServiceVersion': '2.0',
       'Accept': 'application/json'
     },
-    // Add Basic Auth if needed
     auth: process.env.SAP_CRM_USERNAME && process.env.SAP_CRM_PASSWORD ? {
       username: process.env.SAP_CRM_USERNAME,
       password: process.env.SAP_CRM_PASSWORD
@@ -26,83 +25,146 @@ module.exports = cds.service.impl(async function() {
   };
 
   // Handler for reading opportunities from SAP CRM
-  this.on('READ', Opportunity, async (req) => {
+  this.on('READ', Opportunity, async (req, next) => {
     try {
-      console.log('=== Opportunity Request Debug ===');
-      console.log('Request query:', JSON.stringify(req.query, null, 2));
+      console.log('=== OPPORTUNITY READ REQUEST ===');
+      console.log('Full request:', JSON.stringify({
+        query: req.query,
+        params: req.params,
+        path: req.path,
+        headers: req.headers
+      }, null, 2));
       
-      // Check if specific ID is requested
-      const whereClause = req.query.SELECT.where;
+      // Better ID extraction from the request
       let requestedId = null;
       
-      if (whereClause) {
-        console.log('Where clause:', JSON.stringify(whereClause, null, 2));
-        const idFilter = whereClause.find(w => w.ref?.[0] === 'ID');
-        if (idFilter && idFilter.val) {
-          requestedId = idFilter.val;
-          console.log('Requested specific ID:', requestedId);
+      // Method 1: Check params (most reliable for key-based requests)
+      if (req.params && req.params.length > 0 && req.params[0].ID) {
+        requestedId = req.params[0].ID;
+        console.log('Found ID in params:', requestedId);
+      }
+      
+      // Method 2: Check where clause in SELECT
+      if (!requestedId && req.query.SELECT?.from?.ref?.[0]?.where) {
+        const whereClause = req.query.SELECT.from.ref[0].where;
+        console.log('Parsing where clause:', JSON.stringify(whereClause, null, 2));
+        
+        // Where clause format: [{"ref":["ID"]}, "=", {"val":"the-id"}]
+        if (Array.isArray(whereClause) && whereClause.length >= 3) {
+          const fieldRef = whereClause[0];
+          const operator = whereClause[1];
+          const valueObj = whereClause[2];
+          
+          if (fieldRef.ref && fieldRef.ref[0] === 'ID' && operator === '=' && valueObj.val) {
+            requestedId = valueObj.val;
+            console.log('Found ID in where clause:', requestedId);
+          }
         }
       }
       
-      console.log('Fetching opportunities from SAP CRM...');
-      const opportunities = await fetchOpportunitiesFromCRM(CRM_CONFIG);
-      console.log(`Fetched ${opportunities.length} opportunities`);
+      // Method 3: Check direct where clause
+      if (!requestedId && req.query.SELECT?.where) {
+        const whereClause = req.query.SELECT.where;
+        console.log('Checking direct WHERE:', JSON.stringify(whereClause, null, 2));
+        if (Array.isArray(whereClause)) {
+          const idFilter = whereClause.find(w => w.ref?.[0] === 'ID');
+          if (idFilter && idFilter.val) {
+            requestedId = idFilter.val;
+            console.log('Found ID in direct where:', requestedId);
+          }
+        }
+      }
       
-      if (requestedId) {
-        const opportunity = opportunities.find(o => 
-          o.ID === requestedId || 
-          o.ObjectID === requestedId ||
-          o.OpportunityID === requestedId
-        );
-        console.log('Found opportunity for ID:', opportunity ? 'YES' : 'NO');
+      console.log('Final requested ID:', requestedId);
+      
+      if (!requestedId) {
+        console.log('No specific ID found, fetching all opportunities');
+        const opportunities = await fetchAllOpportunities(CRM_CONFIG);
+        return opportunities;
+      }
+      
+      console.log(`Fetching specific opportunity: ${requestedId}`);
+      // Try the individual API first with correct URL pattern
+      try {
+        const opportunity = await fetchSpecificOpportunity(CRM_CONFIG, requestedId);
         if (opportunity) {
-          console.log('Opportunity data:', JSON.stringify(opportunity, null, 2));
+          console.log('✅ Successfully found opportunity via individual API:', opportunity.Name || opportunity.ID);
+          return [opportunity];
         }
-        return opportunity ? [opportunity] : [];
+      } catch (error) {
+        console.log('Individual API failed, falling back to list filtering:', error.message);
       }
       
-      console.log('Returning all opportunities:', opportunities.length);
-      return opportunities;
+      // Fallback: fetch from the "all opportunities" and filter
+      const allOpportunities = await fetchAllOpportunities(CRM_CONFIG);
+      const opportunity = allOpportunities.find(o => 
+        o.ID === requestedId || 
+        o.ObjectID === requestedId ||
+        o.OpportunityID === requestedId
+      );
+      
+      if (opportunity) {
+        console.log('✅ Successfully found opportunity via list filtering:', opportunity.Name || opportunity.ID);
+        return [opportunity];
+      } else {
+        console.log('❌ Opportunity not found in either individual API or list');
+        return [];
+      }
     } catch (error) {
-      console.error('Error fetching opportunities:', error.message);
-      console.log('Falling back to mock data...');
-      // Return mock data as fallback
-      const mockData = getMockOpportunities();
-      
-      // If specific ID requested, filter mock data
-      const whereClause = req.query.SELECT.where;
-      if (whereClause) {
-        const idFilter = whereClause.find(w => w.ref?.[0] === 'ID');
-        if (idFilter && idFilter.val) {
-          const requestedId = idFilter.val;
-          const opportunity = mockData.find(o => o.ID === requestedId);
-          return opportunity ? [opportunity] : [];
-        }
-      }
-      
-      return mockData;
+      console.error('Error fetching opportunities from SAP CRM:', error.message);
+      req.error(502, `Failed to connect to SAP CRM: ${error.message}`);
     }
   });
 
   // Handler for reading risks - with filtering by opportunityID
-  this.on('READ', Risk, async (req) => {
-    // Check if filtering by opportunityID (for navigation)
-    const opportunityFilter = req.query.SELECT.where?.find(
-      w => w.ref?.[0] === 'opportunityID'
-    );
-    
-    if (opportunityFilter) {
-      console.log(`Filtering risks by opportunityID: ${opportunityFilter.val}`);
+  this.on('READ', Risk, async (req, next) => {
+    try {
+      console.log('=== Risk Request Debug ===');
+      console.log('Request query:', JSON.stringify(req.query, null, 2));
+      console.log('Request params:', req.params);
+      console.log('Request path:', req.path);
+      
+      // Check if this is a navigation from Opportunity to Risks
+      const isNavigation = req.path && req.path.includes('/risks');
+      
+      if (isNavigation) {
+        console.log('Navigation request from Opportunity to Risks');
+        
+        // Extract opportunity ID from the path
+        const pathMatch = req.path.match(/Opportunity\('([^']+)'\)/);
+        if (pathMatch) {
+          const opportunityId = pathMatch[1];
+          console.log('Opportunity ID from navigation:', opportunityId);
+          
+          // Query risks for this specific opportunity from the database
+          try {
+            const risks = await SELECT.from(Risk).where({ opportunityID: opportunityId });
+            console.log(`Found ${risks.length} risks for opportunity ${opportunityId}`);
+            return risks;
+          } catch (dbError) {
+            console.log('Database query failed, returning empty array:', dbError.message);
+            return [];
+          }
+        } else {
+          console.log('Could not extract opportunity ID from path');
+          return [];
+        }
+      }
+      
+      // For direct Risk queries, use default handler
+      console.log('Direct risk query, using default handler');
+      return next();
+    } catch (error) {
+      console.error('Error in Risk handler:', error);
+      console.log('Returning empty array due to error');
+      return [];
     }
-    
-    // Let default handler process the query
-    return next();
   });
 
   // Action to refresh opportunities
   this.on('refreshOpportunities', async (req) => {
     try {
-      const opportunities = await fetchOpportunitiesFromCRM(CRM_CONFIG);
+      const opportunities = await fetchAllOpportunities(CRM_CONFIG);
       return `Successfully refreshed ${opportunities.length} opportunities`;
     } catch (error) {
       console.error('Error refreshing opportunities:', error.message);
@@ -110,17 +172,84 @@ module.exports = cds.service.impl(async function() {
     }
   });
 
+  // Fetch specific opportunity by ID using correct SAP CRM API pattern
+  async function fetchSpecificOpportunity(config, id) {
+    const fetch = require('node-fetch');
+    
+    // Use the correct SAP CRM API pattern with query parameters
+    const url = `${config.baseURL}${config.endpoint}/${id}?$exclude=snapshots,isPhaseProgressAllowed,worklistItems`;
+    console.log(`Fetching specific opportunity from: ${url}`);
+    
+    try {
+      const fetchOptions = {
+        method: 'GET',
+        headers: { ...config.headers },
+        timeout: 30000
+      };
+
+      if (config.auth) {
+        const auth = Buffer.from(`${config.auth.username}:${config.auth.password}`).toString('base64');
+        fetchOptions.headers['Authorization'] = `Basic ${auth}`;
+        console.log('✅ Basic Auth added');
+      } else {
+        console.log('⚠️  No authentication configured');
+      }
+      
+      const response = await fetch(url, fetchOptions);
+      console.log(`Response status: ${response.status}`);
+      console.log('Response content-type:', response.headers.get('content-type'));
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText}\nResponse: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('=== SAP CRM Single Opportunity Response ===');
+      console.log('Response type:', typeof data);
+      console.log('Response keys:', Object.keys(data));
+      
+      // For single opportunity, data should be the opportunity object directly
+      if (data && (data.id || data.ObjectID || data.ID)) {
+        console.log('✅ Found opportunity data');
+        console.log('Opportunity details:', {
+          id: data.id || data.ObjectID || data.ID,
+          name: data.name || data.Name || data.Description,
+          displayId: data.displayId,
+          status: data.status || data.statusDescription,
+          expectedRevenue: data.expectedRevenueAmount?.content || 0
+        });
+        
+        return transformSingleOpportunity(data, id);
+      } else {
+        console.log('❌ Unexpected response structure');
+        console.log('Raw response:', JSON.stringify(data, null, 2));
+        return null;
+      }
+      
+    } catch (error) {
+      console.error(`❌ Error fetching specific opportunity:`, error.message);
+      throw error;
+    }
+  }
+
   // Action to create risk for a specific opportunity
   this.on('createRiskForOpportunity', async (req) => {
     const { opportunityID, title, description, impact, probability } = req.data;
     
     try {
-      // First, get the opportunity details to validate it exists
-      const opportunities = await fetchOpportunitiesFromCRM(CRM_CONFIG);
-      const opportunity = opportunities.find(opp => opp.ID === opportunityID || opp.OpportunityID === opportunityID);
+      // First, try to get the specific opportunity to validate it exists
+      let opportunity = null;
+      try {
+        opportunity = await fetchSpecificOpportunity(CRM_CONFIG, opportunityID);
+      } catch (error) {
+        console.log('Individual API failed, trying list method');
+        const opportunities = await fetchAllOpportunities(CRM_CONFIG);
+        opportunity = opportunities.find(opp => opp.ID === opportunityID || opp.OpportunityID === opportunityID);
+      }
       
       if (!opportunity) {
-        req.error(404, `Opportunity with ID ${opportunityID} not found`);
+        req.error(404, `Opportunity with ID ${opportunityID} not found in SAP CRM`);
       }
 
       // Create the risk
@@ -141,176 +270,207 @@ module.exports = cds.service.impl(async function() {
     }
   });
 
-  // Function to fetch opportunities from SAP CRM
-  async function fetchOpportunitiesFromCRM(config) {
+  // Fetch specific opportunity by ID using correct SAP CRM API pattern
+  async function fetchSpecificOpportunity(config, id) {
     const fetch = require('node-fetch');
     
+    // Use the correct SAP CRM API pattern with query parameters
+    const url = `${config.baseURL}${config.endpoint}/${id}?$exclude=snapshots,isPhaseProgressAllowed,worklistItems`;
+    console.log(`Fetching specific opportunity from: ${url}`);
+    
     try {
-      const url = config.baseURL + config.endpoint;
-      console.log(`Fetching from: ${url}`);
-      console.log('Headers:', JSON.stringify(config.headers, null, 2));
-      
       const fetchOptions = {
         method: 'GET',
-        headers: config.headers
+        headers: { ...config.headers },
+        timeout: 30000
       };
 
-      // Add Basic Auth if configured
       if (config.auth) {
         const auth = Buffer.from(`${config.auth.username}:${config.auth.password}`).toString('base64');
         fetchOptions.headers['Authorization'] = `Basic ${auth}`;
-        console.log('Added Basic Auth');
+        console.log('✅ Basic Auth added');
+      } else {
+        console.log('⚠️  No authentication configured');
       }
       
       const response = await fetch(url, fetchOptions);
-      console.log('Response status:', response.status);
-      console.log('Response headers:', JSON.stringify([...response.headers.entries()], null, 2));
-
+      console.log(`Response status: ${response.status}`);
+      console.log('Response content-type:', response.headers.get('content-type'));
+      
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText}\nResponse: ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('=== SAP CRM Response Debug ===');
-      console.log('Full response:', JSON.stringify(data, null, 2));
+      console.log('=== SAP CRM Single Opportunity Response ===');
       console.log('Response type:', typeof data);
       console.log('Response keys:', Object.keys(data));
       
-      // Check if this is just metadata or minimal data
-      if (data['@odata.context'] && Object.keys(data).length <= 2) {
-        console.log('⚠️  Response appears to be minimal/metadata only');
-        console.log('This might indicate:');
-        console.log('  - Wrong endpoint URL');
-        console.log('  - Missing authentication');
-        console.log('  - No data available');
-        console.log('  - Wrong query parameters');
-        console.log('Falling back to mock data...');
-        return getMockOpportunities();
+      // For single opportunity, data should be the opportunity object directly
+      if (data && (data.id || data.ObjectID || data.ID)) {
+        console.log('✅ Found opportunity data');
+        console.log('Opportunity details:', {
+          id: data.id || data.ObjectID || data.ID,
+          name: data.name || data.Name || data.Description,
+          displayId: data.displayId,
+          status: data.status || data.statusDescription,
+          expectedRevenue: data.expectedRevenueAmount?.content || 0
+        });
+        
+        return transformSingleOpportunity(data, id);
+      } else {
+        console.log('❌ Unexpected response structure');
+        console.log('Raw response:', JSON.stringify(data, null, 2));
+        return null;
       }
-      
-      // Log first opportunity to see the structure
-      if (data.d && data.d.results && data.d.results[0]) {
-        console.log('First opportunity sample:', JSON.stringify(data.d.results[0], null, 2));
-      } else if (data.value && data.value[0]) {
-        console.log('First opportunity sample:', JSON.stringify(data.value[0], null, 2));
-      } else if (Array.isArray(data) && data[0]) {
-        console.log('First opportunity sample:', JSON.stringify(data[0], null, 2));
-      }
-      console.log('===============================');
-      
-      // Transform the data based on SAP CRM response structure
-      const transformed = transformOpportunityData(data);
-      
-      // If no meaningful data was transformed, use mock data
-      if (transformed.length === 0 || transformed.every(item => !item.Name || item.Name.startsWith('Opportunity '))) {
-        console.log('⚠️  No meaningful data from SAP CRM, using mock data');
-        return getMockOpportunities();
-      }
-      
-      return transformed;
       
     } catch (error) {
-      console.error('Fetch error:', error);
-      console.log('Error details:', error.message);
-      console.log('Using mock data as fallback...');
-      // Return mock data for development/testing
-      return getMockOpportunities();
+      console.error(`❌ Error fetching specific opportunity:`, error.message);
+      throw error;
     }
+  }
+
+  // Transform single opportunity from SAP CRM
+  function transformSingleOpportunity(item, fallbackId) {
+    return {
+      ID: item.id || item.ObjectID || item.ID || item.OpportunityID || fallbackId,
+      ObjectID: item.ObjectID || item.id || item.ID,
+      OpportunityID: item.OpportunityID || item.displayId || item.OpportunityNumber,
+      Name: item.name || item.Name || item.Description || item.title || 'Unnamed Opportunity',
+      AccountID: item.account?.id || item.AccountID || item.Account,
+      SalesStage: item.status || item.statusDescription || item.SalesStage || item.ProcessingStatusCodeText,
+      ExpectedRevenueAmount: item.expectedRevenueAmount?.content || item.ExpectedRevenueAmount || item.ExpectedValue || item.Amount || 0,
+      Currency: item.expectedRevenueAmount?.currencyCode || item.Currency || item.CurrencyCodeText || 'USD',
+      CloseDate: item.closeDate || item.CloseDate || item.ExpectedClosingDate || item.ClosingDate,
+      CreatedOn: item.adminData?.createdOn || item.CreatedOn || item.CreationDateTime || new Date().toISOString(),
+      LastChangedOn: item.adminData?.updatedOn || item.LastChangedOn || item.LastChangeDateTime || new Date().toISOString(),
+      rawData: item // Keep raw data for debugging
+    };
+  }
+
+  // Fetch all opportunities (reliable method)
+  async function fetchAllOpportunities(config) {
+    const fetch = require('node-fetch');
+    
+    const url = config.baseURL + config.endpoint;
+    console.log(`Fetching all opportunities from: ${url}`);
+    
+    const fetchOptions = {
+      method: 'GET',
+      headers: { ...config.headers },
+      timeout: 30000
+    };
+
+    if (config.auth) {
+      const auth = Buffer.from(`${config.auth.username}:${config.auth.password}`).toString('base64');
+      fetchOptions.headers['Authorization'] = `Basic ${auth}`;
+      console.log('✅ Basic Auth added');
+    } else {
+      console.log('⚠️  No authentication configured');
+    }
+    
+    const response = await fetch(url, fetchOptions);
+    console.log('Response status:', response.status);
+    console.log('Response content-type:', response.headers.get('content-type'));
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${response.statusText}\nResponse: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('=== SAP CRM Response Debug ===');
+    console.log('Response structure:', {
+      type: typeof data,
+      keys: Object.keys(data),
+      hasResults: !!(data.d?.results || data.value || Array.isArray(data))
+    });
+    
+    // Extract results from different possible structures
+    let results = [];
+    if (data.d && data.d.results) {
+      results = data.d.results;
+      console.log('Using data.d.results structure');
+    } else if (data.value) {
+      results = data.value;
+      console.log('Using data.value structure');
+    } else if (Array.isArray(data)) {
+      results = data;
+      console.log('Using array structure');
+    }
+    
+    console.log(`Found ${results.length} opportunities in SAP CRM`);
+    
+    // Log first opportunity structure for debugging (only first one to avoid spam)
+    if (results.length > 0) {
+      console.log('=== First Opportunity Raw Data ===');
+      console.log('Keys available:', Object.keys(results[0]));
+      console.log('Sample fields:', {
+        id: results[0].id,
+        ObjectID: results[0].ObjectID,
+        ID: results[0].ID,
+        name: results[0].name,
+        Name: results[0].Name,
+        displayId: results[0].displayId,
+        status: results[0].status,
+        statusDescription: results[0].statusDescription
+      });
+      console.log('===============================');
+    }
+    
+    // Transform the data
+    return transformOpportunityData({ value: results });
   }
 
   // Transform SAP CRM data to match our model
   function transformOpportunityData(data) {
     console.log('=== Transform Data Debug ===');
-    console.log('Input data:', JSON.stringify(data, null, 2));
     
-    // Handle different possible response structures
     let results = [];
-    
     if (data && data.d && data.d.results) {
       results = data.d.results;
-      console.log('Using data.d.results structure');
     } else if (data && Array.isArray(data)) {
       results = data;
-      console.log('Using array structure');
     } else if (data && data.value) {
       results = data.value;
-      console.log('Using data.value structure');
     } else {
-      console.log('Unexpected data structure or empty data, using mock data');
-      console.log('Data keys:', Object.keys(data || {}));
-      return getMockOpportunities();
+      console.log('Unexpected data structure');
+      throw new Error('Unexpected SAP CRM response structure');
     }
 
-    console.log(`Processing ${results.length} opportunities from SAP CRM`);
+    console.log(`Transforming ${results.length} opportunities`);
     
     const transformed = results.map((item, index) => {
-      console.log(`Processing opportunity ${index + 1}:`, JSON.stringify(item, null, 2));
+      // Only log first few to avoid spam
+      if (index < 3) {
+        console.log(`Raw opportunity ${index + 1} keys:`, Object.keys(item));
+      }
       
-      const transformed = {
-        // Try different possible ID fields from SAP CRM
-        ID: item.ObjectID || item.ID || item.OpportunityID || cds.utils.uuid(),
-        ObjectID: item.ObjectID || item.ID,
-        OpportunityID: item.OpportunityID || item.OpportunityNumber,
-        Name: item.Name || item.Description || item.Title || `Opportunity ${index + 1}`,
-        AccountID: item.AccountID || item.Account,
-        SalesStage: item.SalesStage || item.ProcessingStatusCodeText || item.Status,
-        ExpectedRevenueAmount: item.ExpectedRevenueAmount || item.ExpectedValue || item.Amount || 0,
-        Currency: item.Currency || item.CurrencyCodeText || 'USD',
-        CloseDate: item.CloseDate || item.ExpectedClosingDate || item.ClosingDate,
-        CreatedOn: item.CreatedOn || item.CreationDateTime || new Date().toISOString(),
-        LastChangedOn: item.LastChangedOn || item.LastChangeDateTime || new Date().toISOString()
+      const result = {
+        // Use the ID that actually exists in your SAP CRM data
+        ID: item.id || item.ObjectID || item.ID || item.OpportunityID || cds.utils.uuid(),
+        ObjectID: item.ObjectID || item.id || item.ID,
+        OpportunityID: item.OpportunityID || item.displayId || item.OpportunityNumber,
+        Name: item.name || item.Name || item.Description || item.title || `Opportunity ${index + 1}`,
+        AccountID: item.account?.id || item.AccountID || item.Account,
+        SalesStage: item.status || item.statusDescription || item.SalesStage || item.ProcessingStatusCodeText,
+        ExpectedRevenueAmount: item.expectedRevenueAmount?.content || item.ExpectedRevenueAmount || item.ExpectedValue || item.Amount || 0,
+        Currency: item.expectedRevenueAmount?.currencyCode || item.Currency || item.CurrencyCodeText || 'USD',
+        CloseDate: item.closeDate || item.CloseDate || item.ExpectedClosingDate || item.ClosingDate,
+        CreatedOn: item.adminData?.createdOn || item.CreatedOn || item.CreationDateTime || new Date().toISOString(),
+        LastChangedOn: item.adminData?.updatedOn || item.LastChangedOn || item.LastChangeDateTime || new Date().toISOString()
       };
       
-      console.log(`Transformed opportunity ${index + 1}:`, JSON.stringify(transformed, null, 2));
-      return transformed;
+      // Only log first transformation to see the mapping
+      if (index === 0) {
+        console.log('First transformed opportunity:', JSON.stringify(result, null, 2));
+      }
+      
+      return result;
     });
     
-    console.log('===========================');
+    console.log(`Successfully transformed ${transformed.length} opportunities`);
     return transformed;
-  }
-
-  // Mock data for development/testing - simulating SAP CRM structure
-  function getMockOpportunities() {
-    return [
-      {
-        ID: '53397f8c-6355-4c4e-8b50-433ee99d1067', // Your actual ID from SAP CRM
-        ObjectID: '53397f8c-6355-4c4e-8b50-433ee99d1067',
-        OpportunityID: 'OPP-2025-001',
-        Name: 'Enterprise Software Implementation',
-        AccountID: 'ACC001',
-        SalesStage: 'Qualification',
-        ExpectedRevenueAmount: 150000.00,
-        Currency: 'USD',
-        CloseDate: '2025-09-15',
-        CreatedOn: new Date().toISOString(),
-        LastChangedOn: new Date().toISOString()
-      },
-      {
-        ID: '12345678-1234-1234-1234-123456789012',
-        ObjectID: '12345678-1234-1234-1234-123456789012',
-        OpportunityID: 'OPP-2025-002',
-        Name: 'Cloud Migration Project',
-        AccountID: 'ACC002',
-        SalesStage: 'Proposal',
-        ExpectedRevenueAmount: 250000.00,
-        Currency: 'USD',
-        CloseDate: '2025-10-30',
-        CreatedOn: new Date().toISOString(),
-        LastChangedOn: new Date().toISOString()
-      },
-      {
-        ID: 'abcdef12-3456-7890-abcd-ef1234567890',
-        ObjectID: 'abcdef12-3456-7890-abcd-ef1234567890',
-        OpportunityID: 'OPP-2025-003',
-        Name: 'Digital Transformation Initiative',
-        AccountID: 'ACC003',
-        SalesStage: 'Negotiation',
-        ExpectedRevenueAmount: 500000.00,
-        Currency: 'USD',
-        CloseDate: '2025-12-15',
-        CreatedOn: new Date().toISOString(),
-        LastChangedOn: new Date().toISOString()
-      }
-    ];
   }
 });

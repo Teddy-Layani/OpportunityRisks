@@ -1,7 +1,7 @@
-// frontend/src/services/api.js - Fixed to use proxy (RELATIVE URLs)
+// frontend/src/services/api.js - Updated version with new fields
 import axios from 'axios'
 
-// Use relative URLs to leverage Vite proxy - THIS IS CRITICAL!
+// Use relative URLs to leverage Vite proxy
 const API_BASE_URL = '/opportunity-risks'
 
 // Create axios instance with proxy-friendly configuration
@@ -11,13 +11,13 @@ const api = axios.create({
     'Accept': 'application/json',
     'Content-Type': 'application/json'
   },
-  timeout: 10000
+  timeout: 30000 // Increased timeout to match backend
 })
 
 // Add request interceptor for debugging
 api.interceptors.request.use(
   (config) => {
-    console.log('API Request:', config.method?.toUpperCase(), `${API_BASE_URL}${config.url}`)
+    console.log('API Request:', config.method?.toUpperCase(), config.url)
     return config
   },
   (error) => {
@@ -34,6 +34,7 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('API Response Error:', error.response?.status, error.response?.data)
+    // Better error handling
     if (error.response?.status === 401) {
       console.error('Unauthorized - check backend authentication')
     } else if (error.response?.status === 404) {
@@ -47,6 +48,7 @@ api.interceptors.response.use(
 
 // OPPORTUNITY OPERATIONS (READ-ONLY - Data comes from SAP CRM)
 export const opportunityService = {
+  // READ - Get all opportunities (from SAP CRM via CAP service)
   async getOpportunities() {
     try {
       const response = await api.get('/Opportunity')
@@ -57,6 +59,7 @@ export const opportunityService = {
     }
   },
 
+  // READ - Get specific opportunity (from SAP CRM via CAP service)
   async getOpportunity(id) {
     try {
       const response = await api.get(`/Opportunity('${id}')`)
@@ -70,16 +73,77 @@ export const opportunityService = {
 
 // RISK CRUD OPERATIONS (Full CRUD - Managed locally)
 export const riskService = {
+  // READ - Get risks for opportunity
   async getOpportunityRisks(opportunityId) {
     try {
-      const response = await api.get(`/Opportunity('${opportunityId}')/risks`)
-      return response.data.value || response.data || []
+      console.log('🔍 Fetching risks for opportunity:', opportunityId)
+      
+      // Try multiple approaches to get the risks
+      
+      // Method 1: Try navigation first (what we've been testing)
+      try {
+        console.log('Method 1: Trying navigation endpoint...')
+        let response = await api.get(`/Opportunity('${opportunityId}')/risks`)
+        let risks = response.data.value || response.data || []
+        console.log('Navigation returned:', risks.length, 'risks')
+        
+        if (risks.length > 0) {
+          console.log('✅ Navigation successful, returning risks')
+          return risks
+        }
+      } catch (navError) {
+        console.log('Navigation failed:', navError.message)
+      }
+      
+      // Method 2: Try direct Risk query with filter
+      try {
+        console.log('Method 2: Trying direct filter query...')
+        const response = await api.get(`/Risk?$filter=opportunityID eq '${opportunityId}'`)
+        const risks = response.data.value || response.data || []
+        console.log('Filter query returned:', risks.length, 'risks')
+        
+        if (risks.length > 0) {
+          console.log('✅ Filter query successful, returning risks')
+          return risks
+        }
+      } catch (filterError) {
+        console.log('Filter query failed:', filterError.message)
+      }
+      
+      // Method 3: Get all risks and filter client-side
+      try {
+        console.log('Method 3: Trying get all + client filter...')
+        const response = await api.get(`/Risk`)
+        const allRisks = response.data.value || response.data || []
+        console.log('Got', allRisks.length, 'total risks from database')
+        
+        const filteredRisks = allRisks.filter(risk => {
+          console.log('Checking risk:', risk.ID, 'opportunityID:', risk.opportunityID, 'target:', opportunityId)
+          return risk.opportunityID === opportunityId
+        })
+        console.log('Client filter found:', filteredRisks.length, 'matching risks')
+        
+        if (filteredRisks.length > 0) {
+          console.log('✅ Client filter successful, returning risks')
+        } else {
+          console.log('⚠️ No risks found for this opportunity')
+        }
+        return filteredRisks
+      } catch (allError) {
+        console.log('Get all risks failed:', allError.message)
+      }
+      
+      // If all methods fail, return empty array
+      console.log('❌ All methods failed, returning empty array')
+      return []
+      
     } catch (error) {
-      console.error(`Error fetching risks for opportunity ${opportunityId}:`, error)
-      throw error
+      console.error(`❌ Error fetching risks for opportunity ${opportunityId}:`, error)
+      return []
     }
   },
 
+  // READ - Get specific risk
   async getRisk(riskId) {
     try {
       const response = await api.get(`/Risk('${riskId}')`)
@@ -90,22 +154,26 @@ export const riskService = {
     }
   },
 
-  async createRisk(opportunityId, riskData) {
+  // CREATE - Add new risk to opportunity
+  async createRisk(opportunityId, riskData, opportunityName = null) {
     try {
-      const response = await api.post('/Risk', {
-        ID: riskData.ID || this.generateUUID(),
+      // Include all fields that exist in the Risk entity schema
+      const payload = {
         title: riskData.title,
         description: riskData.description,
         impact: riskData.impact || 'Medium',
         probability: riskData.probability || 'Medium',
         status: riskData.status || 'Open',
-        mitigation: riskData.mitigation,
-        owner: riskData.owner,
-        dueDate: riskData.dueDate,
-        opportunityId: opportunityId,
-        createdAt: new Date().toISOString(),
-        modifiedAt: new Date().toISOString()
-      })
+        owner: riskData.owner || null,
+        mitigation: riskData.mitigation || null,
+        dueDate: riskData.dueDate || null,
+        opportunityID: opportunityId,
+        opportunityName: opportunityName
+      }
+      
+      console.log('Creating risk with payload:', payload)
+      
+      const response = await api.post('/Risk', payload)
       return response.data
     } catch (error) {
       console.error('Error creating risk:', error)
@@ -113,19 +181,24 @@ export const riskService = {
     }
   },
 
+  // UPDATE - Update existing risk
   async updateRisk(riskId, riskData) {
     try {
-      const response = await api.patch(`/Risk('${riskId}')`, {
+      // Include all fields that exist in the Risk entity schema
+      const payload = {
         title: riskData.title,
         description: riskData.description,
         impact: riskData.impact,
         probability: riskData.probability,
         status: riskData.status,
-        mitigation: riskData.mitigation,
         owner: riskData.owner,
+        mitigation: riskData.mitigation,
         dueDate: riskData.dueDate,
-        modifiedAt: new Date().toISOString()
-      })
+        opportunityID: riskData.opportunityID,
+        opportunityName: riskData.opportunityName
+      }
+      
+      const response = await api.patch(`/Risk('${riskId}')`, payload)
       return response.data
     } catch (error) {
       console.error(`Error updating risk ${riskId}:`, error)
@@ -133,6 +206,7 @@ export const riskService = {
     }
   },
 
+  // DELETE - Remove risk
   async deleteRisk(riskId) {
     try {
       const response = await api.delete(`/Risk('${riskId}')`)
@@ -141,18 +215,12 @@ export const riskService = {
       console.error(`Error deleting risk ${riskId}:`, error)
       throw error
     }
-  },
-
-  generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
   }
 }
 
 // UTILITY FUNCTIONS
 export const apiUtils = {
+  // Test connection
   async testConnection() {
     try {
       const response = await api.get('/')
@@ -162,6 +230,7 @@ export const apiUtils = {
     }
   },
 
+  // Format date for display
   formatDate(dateString) {
     if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -171,10 +240,16 @@ export const apiUtils = {
     })
   },
 
+  // Format date for input fields
   formatDateForInput(dateString) {
     if (!dateString) return ''
     return new Date(dateString).toISOString().split('T')[0]
   }
 }
+
+// Legacy exports for backward compatibility
+export const getOpportunity = opportunityService.getOpportunity
+export const getOpportunityRisks = riskService.getOpportunityRisks
+export const createRisk = riskService.createRisk
 
 export default api
