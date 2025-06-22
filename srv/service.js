@@ -172,67 +172,6 @@ module.exports = cds.service.impl(async function() {
     }
   });
 
-  // Fetch specific opportunity by ID using correct SAP CRM API pattern
-  async function fetchSpecificOpportunity(config, id) {
-    const fetch = require('node-fetch');
-    
-    // Use the correct SAP CRM API pattern with query parameters
-    const url = `${config.baseURL}${config.endpoint}/${id}?$exclude=snapshots,isPhaseProgressAllowed,worklistItems`;
-    console.log(`Fetching specific opportunity from: ${url}`);
-    
-    try {
-      const fetchOptions = {
-        method: 'GET',
-        headers: { ...config.headers },
-        timeout: 30000
-      };
-
-      if (config.auth) {
-        const auth = Buffer.from(`${config.auth.username}:${config.auth.password}`).toString('base64');
-        fetchOptions.headers['Authorization'] = `Basic ${auth}`;
-        console.log('✅ Basic Auth added');
-      } else {
-        console.log('⚠️  No authentication configured');
-      }
-      
-      const response = await fetch(url, fetchOptions);
-      console.log(`Response status: ${response.status}`);
-      console.log('Response content-type:', response.headers.get('content-type'));
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${response.statusText}\nResponse: ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('=== SAP CRM Single Opportunity Response ===');
-      console.log('Response type:', typeof data);
-      console.log('Response keys:', Object.keys(data));
-      
-      // For single opportunity, data should be the opportunity object directly
-      if (data && (data.id || data.ObjectID || data.ID)) {
-        console.log('✅ Found opportunity data');
-        console.log('Opportunity details:', {
-          id: data.id || data.ObjectID || data.ID,
-          name: data.name || data.Name || data.Description,
-          displayId: data.displayId,
-          status: data.status || data.statusDescription,
-          expectedRevenue: data.expectedRevenueAmount?.content || 0
-        });
-        
-        return transformSingleOpportunity(data, id);
-      } else {
-        console.log('❌ Unexpected response structure');
-        console.log('Raw response:', JSON.stringify(data, null, 2));
-        return null;
-      }
-      
-    } catch (error) {
-      console.error(`❌ Error fetching specific opportunity:`, error.message);
-      throw error;
-    }
-  }
-
   // Action to create risk for a specific opportunity
   this.on('createRiskForOpportunity', async (req) => {
     const { opportunityID, title, description, impact, probability } = req.data;
@@ -473,4 +412,25 @@ module.exports = cds.service.impl(async function() {
     console.log(`Successfully transformed ${transformed.length} opportunities`);
     return transformed;
   }
+});
+
+// ===== MINIMAL IFRAME HEADERS - SAFE ADDITION =====
+
+// Hook into CAP server bootstrap to add iframe headers
+cds.on('bootstrap', (app) => {
+  console.log('🖼️ Adding minimal iframe headers for SAP CX Sales integration...');
+  
+  // Add ONLY the iframe headers - don't change any existing functionality
+  app.use((req, res, next) => {
+    // Set iframe-friendly headers for SAP CX Sales embedding
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Content-Security-Policy', 
+      "frame-ancestors 'self' *.sap.com *.cloud.sap *.applicationstudio.cloud.sap *.crm.cloud.sap"
+    );
+    
+    // Continue with existing request handling
+    next();
+  });
+  
+  console.log('✅ Iframe headers configured for SAP CX Sales integration');
 });
