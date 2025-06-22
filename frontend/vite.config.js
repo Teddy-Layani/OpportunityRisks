@@ -1,4 +1,4 @@
-// frontend/vite.config.js - Fixed proxy configuration
+// frontend/vite.config.js - Updated with CSP headers and clean proxy config
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
@@ -7,6 +7,13 @@ export default defineConfig({
   server: {
     port: 3002,
     host: '0.0.0.0',
+    // Configure headers to allow framing in SAP Business Application Studio
+    headers: {
+      // Allow framing from SAP Business Application Studio domains
+      'X-Frame-Options': 'ALLOWALL',
+      'Content-Security-Policy': "frame-ancestors 'self' *.ap10cf.applicationstudio.cloud.sap gw.ap10.applicationstudio.cloud.sap *.ap10.applicationstudio.cloud.sap workspaces-ws-8dilk.ap10.applicationstudio.cloud.sap port3002-workspaces-ws-8dilk.ap10.applicationstudio.cloud.sap *.sap.com 'unsafe-inline'"
+    },
+    // Proxy configuration for backend API
     proxy: {
       '/opportunity-risks': {
         target: 'https://port4004-workspaces-ws-8dilk.ap10.applicationstudio.cloud.sap',

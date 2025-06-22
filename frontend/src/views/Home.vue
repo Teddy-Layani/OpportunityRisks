@@ -10,6 +10,87 @@
       </p>
     </div>
 
+    <!-- NEW URL Structure Notice -->
+    <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+      <div class="flex items-start space-x-3">
+        <div class="flex-shrink-0">
+          <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+            <span class="text-green-600 font-bold">✓</span>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-green-900 mb-2">Updated URL Structure</h3>
+          <p class="text-green-800 mb-3">
+            The application now uses <strong>query parameters</strong> instead of path parameters for better flexibility and RESTful design.
+          </p>
+          <div class="bg-white border border-green-300 rounded-lg p-4">
+            <div class="grid md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <div class="text-red-700 font-medium mb-1">❌ Old Format:</div>
+                <code class="text-red-600 text-xs break-all">/opportunity/{id}/risks</code>
+              </div>
+              <div>
+                <div class="text-green-700 font-medium mb-1">✅ New Format:</div>
+                <code class="text-green-600 text-xs break-all">/opportunityRisks?id={id}</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Helper -->
+    <div class="bg-white rounded-lg shadow-sm border p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">🧭 Quick Navigation</h3>
+      
+      <div class="space-y-4">
+        <div>
+          <label for="opportunityId" class="block text-sm font-medium text-gray-700 mb-2">
+            Enter Opportunity ID:
+          </label>
+          <div class="flex space-x-2">
+            <input
+              id="opportunityId"
+              v-model="opportunityId"
+              type="text"
+              placeholder="e.g., 598e38c8-44fe-11f0-be69-7fb6bd09c2a6"
+              class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+            />
+            <button
+              @click="navigateToRisks"
+              :disabled="!opportunityId.trim()"
+              class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-md font-medium text-sm transition-colors"
+            >
+              Go to Risks
+            </button>
+          </div>
+        </div>
+        
+        <!-- URL Preview -->
+        <div v-if="opportunityId.trim()" class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-500 mb-1">Generated URL:</div>
+          <div class="font-mono text-sm text-blue-600 break-all">
+            {{ generatedUrl }}
+          </div>
+        </div>
+        
+        <!-- Sample Opportunity IDs -->
+        <div class="text-xs text-gray-500">
+          <div class="mb-2">Sample Opportunity IDs for testing:</div>
+          <div class="grid grid-cols-1 gap-1">
+            <button
+              v-for="sampleId in sampleIds"
+              :key="sampleId"
+              @click="opportunityId = sampleId"
+              class="text-left font-mono text-blue-600 hover:text-blue-800 cursor-pointer hover:bg-blue-50 px-2 py-1 rounded text-xs"
+            >
+              {{ sampleId }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Instructions Card -->
     <div class="bg-white rounded-lg shadow-sm border p-8">
       <div class="flex items-start space-x-4">
@@ -30,8 +111,11 @@
             
             <div class="bg-gray-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
               <p class="font-mono text-sm text-gray-800">
-                <strong>URL Pattern:</strong><br>
-                <span class="text-blue-600">/opportunity/{OPPORTUNITY_ID}/risks</span>
+                <strong>NEW URL Pattern:</strong><br>
+                <span class="text-blue-600">/opportunityRisks?id={OPPORTUNITY_ID}</span>
+              </p>
+              <p class="text-xs text-gray-600 mt-2">
+                <em>Legacy format still supported with automatic redirect</em>
               </p>
             </div>
 
@@ -45,6 +129,7 @@
                   <li>• Delete risks with confirmation</li>
                   <li>• Filter risks by status</li>
                   <li>• Track risk mitigation strategies</li>
+                  <li>• Set risk owners and due dates</li>
                 </ul>
               </div>
               <div>
@@ -53,6 +138,7 @@
                   <li>• <strong>Opportunities:</strong> SAP CRM (read-only)</li>
                   <li>• <strong>Risks:</strong> Local database (full CRUD)</li>
                   <li>• <strong>Integration:</strong> CAP backend service</li>
+                  <li>• <strong>URL Format:</strong> Query parameters</li>
                 </ul>
               </div>
             </div>
@@ -65,19 +151,63 @@
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
       <h3 class="text-lg font-semibold text-blue-900 mb-3">📋 Example Usage</h3>
       <p class="text-blue-800 mb-4">
-        To manage risks for a specific opportunity, construct the URL with the opportunity ID:
+        To manage risks for a specific opportunity, construct the URL with the opportunity ID as a query parameter:
       </p>
       
-      <div class="bg-white border border-blue-300 rounded-lg p-4 font-mono text-sm">
-        <div class="text-gray-600 mb-2">Example URL:</div>
-        <div class="text-blue-600 break-all">
-          {{ exampleUrl }}
+      <div class="space-y-3">
+        <!-- New Format Examples -->
+        <div class="bg-white border border-blue-300 rounded-lg p-4">
+          <div class="text-blue-700 font-medium mb-2">✅ Current Format (Recommended):</div>
+          <div class="font-mono text-sm text-blue-600 break-all mb-2">
+            {{ newExampleUrl }}
+          </div>
+          <button 
+            @click="testNewUrl" 
+            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+          >
+            Test This URL
+          </button>
+        </div>
+
+        <!-- Legacy Format -->
+        <div class="bg-gray-50 border border-gray-300 rounded-lg p-4">
+          <div class="text-gray-700 font-medium mb-2">⚠️ Legacy Format (Auto-redirects):</div>
+          <div class="font-mono text-sm text-gray-600 break-all">
+            {{ legacyExampleUrl }}
+          </div>
         </div>
       </div>
       
       <p class="text-blue-700 text-sm mt-3">
         Replace the opportunity ID with your actual SAP CRM opportunity identifier.
       </p>
+    </div>
+
+    <!-- URL Benefits -->
+    <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+      <h3 class="text-lg font-semibold text-purple-900 mb-3">🚀 Query Parameter Benefits</h3>
+      <div class="grid md:grid-cols-2 gap-4 text-sm text-purple-800">
+        <div>
+          <h4 class="font-medium mb-2">✅ Advantages:</h4>
+          <ul class="space-y-1">
+            <li>• More flexible URL structure</li>
+            <li>• Easier to add additional parameters</li>
+            <li>• Better for bookmarking and sharing</li>
+            <li>• RESTful API alignment</li>
+            <li>• Cleaner route definitions</li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-medium mb-2">🔧 Implementation:</h4>
+          <ul class="space-y-1">
+            <li>• Vue Router query prop binding</li>
+            <li>• Backward compatibility maintained</li>
+            <li>• Automatic redirects from legacy URLs</li>
+            <li>• Enhanced breadcrumb navigation</li>
+            <li>• CSP headers for iframe support</li>
+          </ul>
+        </div>
+      </div>
     </div>
 
     <!-- Technical Details -->
@@ -91,15 +221,17 @@
             <li>• Opportunity data from SAP CRM</li>
             <li>• Risk data stored locally</li>
             <li>• RESTful API endpoints</li>
+            <li>• Enhanced error handling</li>
           </ul>
         </div>
         <div>
           <h4 class="font-medium text-gray-900 mb-2">Frontend Technology:</h4>
           <ul class="space-y-1">
             <li>• Vue 3 with Composition API</li>
+            <li>• Vue Router query parameters</li>
             <li>• Tailwind CSS styling</li>
             <li>• Axios for HTTP requests</li>
-            <li>• Responsive design</li>
+            <li>• Responsive design + CSP support</li>
           </ul>
         </div>
       </div>
@@ -109,7 +241,7 @@
     <div class="text-center">
       <div class="inline-flex items-center space-x-2 bg-green-50 border border-green-200 rounded-full px-4 py-2 text-green-800">
         <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-        <span class="text-sm font-medium">Application Ready</span>
+        <span class="text-sm font-medium">Application Ready - Query Parameter URL Structure</span>
       </div>
     </div>
   </div>
@@ -118,10 +250,50 @@
 <script>
 export default {
   name: 'Home',
+  data() {
+    return {
+      opportunityId: '',
+      sampleIds: [
+        '598e38c8-44fe-11f0-be69-7fb6bd09c2a6',
+        '53397f8c-6355-4c4e-8b50-433ee99d1067',
+        '7a8b9c0d-1234-5678-9abc-def012345678'
+      ]
+    }
+  },
   computed: {
-    exampleUrl() {
+    newExampleUrl() {
       const baseUrl = window.location.origin
-      return `${baseUrl}/opportunity/53397f8c-6355-4c4e-8b50-433ee99d1067/risks`
+      return `${baseUrl}/opportunityRisks?id=598e38c8-44fe-11f0-be69-7fb6bd09c2a6`
+    },
+    
+    legacyExampleUrl() {
+      const baseUrl = window.location.origin
+      return `${baseUrl}/opportunity/598e38c8-44fe-11f0-be69-7fb6bd09c2a6/risks`
+    },
+    
+    generatedUrl() {
+      if (!this.opportunityId.trim()) return ''
+      const baseUrl = window.location.origin
+      return `${baseUrl}/opportunityRisks?id=${this.opportunityId.trim()}`
+    }
+  },
+  
+  methods: {
+    navigateToRisks() {
+      if (!this.opportunityId.trim()) return
+      
+      this.$router.push({
+        name: 'opportunity-risks',
+        query: { id: this.opportunityId.trim() }
+      })
+    },
+    
+    testNewUrl() {
+      // Navigate to the new URL format for testing
+      this.$router.push({
+        name: 'opportunity-risks',
+        query: { id: '598e38c8-44fe-11f0-be69-7fb6bd09c2a6' }
+      })
     }
   }
 }
