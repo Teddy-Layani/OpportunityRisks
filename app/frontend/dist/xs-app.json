@@ -1,0 +1,61 @@
+{
+  "welcomeFile": "/index.html",
+  "authenticationMethod": "route",
+  "logout": {
+    "logoutEndpoint": "/do/logout"
+  },
+  "routes": [
+    {
+      "source": "^/opportunity-risks/(.*)$",
+      "target": "/odata/v4/opportunity-risks/$1",
+      "destination": "OpportunityRisks-app-srv",
+      "authenticationType": "xsuaa",
+      "csrfProtection": false
+    },
+    {
+      "source": "^/opportunityRisks/(.*)$",
+      "target": "/odata/v4/opportunity-risks/$1",
+      "destination": "OpportunityRisks-app-srv",
+      "authenticationType": "xsuaa",
+      "csrfProtection": false
+    },
+    {
+      "source": "^/api/(.*)$",
+      "target": "/odata/v4/opportunity-risks/$1",
+      "destination": "OpportunityRisks-app-srv",
+      "authenticationType": "xsuaa",
+      "csrfProtection": false
+    },
+    {
+      "source": "^/odata/v4/opportunity-risks/(.*)$",
+      "target": "/odata/v4/opportunity-risks/$1",
+      "destination": "OpportunityRisks-app-srv",
+      "authenticationType": "xsuaa",
+      "csrfProtection": false
+    },
+    {
+      "source": "^/favicon.ico$",
+      "target": "/favicon.ico",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa"
+    },
+    {
+      "source": "^/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map|json))$",
+      "target": "/$1",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa"
+    },
+    {
+      "source": "^/opportunityRisks.*$",
+      "target": "/index.html",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa"
+    },
+    {
+      "source": "^/(.*)$",
+      "target": "/index.html",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa"
+    }
+  ]
+}

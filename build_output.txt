@@ -1,0 +1,179 @@
+[2025-06-23 05:11:27]  INFO Cloud MTA Build Tool version 1.2.34
+[2025-06-23 05:11:27]  INFO generating the "Makefile_20250623051127.mta" file...
+[2025-06-23 05:11:27]  INFO done
+[2025-06-23 05:11:27]  INFO executing the "make -f Makefile_20250623051127.mta p=cf mtar= strict=true mode=" command...
+[2025-06-23 05:11:27]  INFO validating the MTA project
+[2025-06-23 05:11:27]  INFO running the "before-all" build...
+[2025-06-23 05:11:27]  INFO executing the "rm -rf build/dist" command...
+[2025-06-23 05:11:27]  INFO executing the "mkdir -p build/dist" command...
+[2025-06-23 05:11:27]  INFO executing the "rm -rf build/ui-deployer" command...
+[2025-06-23 05:11:27]  INFO executing the "mkdir -p build/ui-deployer" command...
+[2025-06-23 05:11:27]  INFO executing the "npm install --production" command...
+npm warn config production Use `--omit=dev` instead.
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@sap/xsenv@3.4.0',
+npm warn EBADENGINE   required: { node: '^10.0.0 || ^12.0.0 || ^14.0.0 || ^16.0.0 || ^18.0.0' },
+npm warn EBADENGINE   current: { node: 'v22.13.1', npm: '10.9.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@sap/xsenv@3.3.2',
+npm warn EBADENGINE   required: { node: '^10.0.0 || ^12.0.0 || ^14.0.0 || ^16.0.0' },
+npm warn EBADENGINE   current: { node: 'v22.13.1', npm: '10.9.2' }
+npm warn EBADENGINE }
+
+up to date, audited 197 packages in 615ms
+
+21 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+[2025-06-23 05:11:27]  INFO executing the "bash -c 'cds -v | grep '\''cds-dk'\'' || npm i --production --no-save @sap/cds-dk'" command...
+@sap/cds-dk: 8.9.3
+@sap/cds-dk (global): 9.0.5
+[2025-06-23 05:11:28]  INFO executing the "bash -c 'export PATH=$PATH:$(pwd)/node_modules/.bin'" command...
+[2025-06-23 05:11:28]  INFO executing the "cds build --production" command...
+building project with {
+  versions: { cds: '9.0.4', compiler: '6.0.14', dk: '9.0.5' },
+  target: 'gen',
+  tasks: [
+    { src: 'db', for: 'hana', options: { model: [ 'db', 'srv', 'app', '@sap/cds/srv/outbox' ] } },
+    { src: 'srv', for: 'nodejs', options: { model: [ 'db', 'srv', 'app', '@sap/cds/srv/outbox' ] } }
+  ]
+}
+done > wrote output to:
+   gen/db/package.json
+   gen/db/src/.hdiconfig
+   gen/db/src/gen/.hdiconfig
+   gen/db/src/gen/.hdinamespace
+   gen/db/src/gen/DRAFT.DraftAdministrativeData.hdbtable
+   gen/db/src/gen/OpportunityRiskService.DraftAdministrativeData.hdbview
+   gen/db/src/gen/OpportunityRiskService.Risks.hdbview
+   gen/db/src/gen/OpportunityRiskService.Risks_drafts.hdbtable
+   gen/db/src/gen/OpportunityRisks.Risk.hdbtable
+   gen/db/src/gen/OpportunityRisksService.Risk.hdbview
+   gen/db/src/gen/cds.outbox.Messages.hdbtable
+   gen/db/undeploy.json
+   gen/srv/package-lock.json
+   gen/srv/package.json
+   gen/srv/srv/_i18n/i18n.json
+   gen/srv/srv/csn.json
+   gen/srv/srv/odata/v4/OpportunityRiskService.xml
+   gen/srv/srv/odata/v4/OpportunityRisksService.xml
+   gen/srv/srv/oldservice.js
+   gen/srv/srv/opportunity-service.js
+   gen/srv/srv/service.js
+
+build completed in 664 ms
+[2025-06-23 05:11:28]  INFO validating the MTA project
+[2025-06-23 05:11:28]  INFO building the "OpportunityRisks-db-deployer" module...
+[2025-06-23 05:11:28]  INFO executing the "npm install --production" command...
+npm warn config production Use `--omit=dev` instead.
+
+added 28 packages, and audited 29 packages in 692ms
+
+3 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+[2025-06-23 05:11:29]  INFO the build results of the "OpportunityRisks-db-deployer" module will be packaged and saved in the "/home/user/projects/OpportunityRisks/.OpportunityRisks_mta_build_tmp/OpportunityRisks-db-deployer" folder
+[2025-06-23 05:11:29]  INFO finished building the "OpportunityRisks-db-deployer" module
+[2025-06-23 05:11:29]  INFO building the "OpportunityRisks-srv" module...
+[2025-06-23 05:11:29]  INFO executing the "npm install --production" command...
+npm warn config production Use `--omit=dev` instead.
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@sap/xsenv@3.4.0',
+npm warn EBADENGINE   required: { node: '^10.0.0 || ^12.0.0 || ^14.0.0 || ^16.0.0 || ^18.0.0' },
+npm warn EBADENGINE   current: { node: 'v22.13.1', npm: '10.9.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@sap/xsenv@3.3.2',
+npm warn EBADENGINE   required: { node: '^10.0.0 || ^12.0.0 || ^14.0.0 || ^16.0.0' },
+npm warn EBADENGINE   current: { node: 'v22.13.1', npm: '10.9.2' }
+npm warn EBADENGINE }
+.
+added 196 packages, and audited 197 packages in 1s
+
+21 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+[2025-06-23 05:11:31]  INFO the build results of the "OpportunityRisks-srv" module will be packaged and saved in the "/home/user/projects/OpportunityRisks/.OpportunityRisks_mta_build_tmp/OpportunityRisks-srv" folder
+[2025-06-23 05:11:31]  INFO finished building the "OpportunityRisks-srv" module
+[2025-06-23 05:11:31]  INFO building the "OpportunityRisks-frontend" module...
+[2025-06-23 05:11:31]  INFO executing the "npm install --production" command...
+npm warn config production Use `--omit=dev` instead.
+
+up to date, audited 49 packages in 560ms
+
+10 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+[2025-06-23 05:11:31]  INFO finished building the "OpportunityRisks-frontend" module
+[2025-06-23 05:11:31]  INFO building the "OpportunityRisks-aux-destinations" module...
+[2025-06-23 05:11:31]  INFO the "OpportunityRisks-aux-destinations" module was not built because the "no-source" build parameter is set to "true"
+[2025-06-23 05:11:31]  INFO finished building the "OpportunityRisks-aux-destinations" module
+[2025-06-23 05:11:31]  INFO building the "OpportunityRisks-launchpad" module...
+[2025-06-23 05:11:31]  INFO executing the "npm install" command...
+
+up to date, audited 638 packages in 874ms
+
+132 packages are looking for funding
+  run `npm fund` for details
+
+1 low severity vulnerability
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+[2025-06-23 05:11:32]  INFO executing the "npx -p @ui5/cli@^3.0.0 ui5 build --dest dist --include-task=generateCachebusterInfo" command...
+info ProjectBuilder Preparing build for project launchpad
+info ProjectBuilder   Target directory: dist
+info Project 1 of 1: ❯ Building application project launchpad...
+info launchpad › Running task escapeNonAsciiCharacters...
+info launchpad › Running task replaceCopyright...
+info launchpad › Running task replaceVersion...
+info launchpad › Running task minify...
+info launchpad › Running task generateFlexChangesBundle...
+info launchpad › Running task generateComponentPreload...
+info launchpad › Running task generateCachebusterInfo...
+info ProjectBuilder Build succeeded in 122 ms
+info ProjectBuilder Executing cleanup tasks...
+[2025-06-23 05:11:33]  INFO executing the "bash -c 'cd dist && npx bestzip ../../../build/dist/launchpad.zip *'" command...
+Writing Component-preload.js, Component-preload.js.map, assets, i18n, index.html, launchpadPage.html, manifest.json, sap-ui-cachebuster-info.json, xs-app.json to ../../../build/dist/launchpad.zip...
+zipped!
+[2025-06-23 05:11:33]  INFO executing the "rm -rf dist" command...
+[2025-06-23 05:11:33]  INFO finished building the "OpportunityRisks-launchpad" module
+[2025-06-23 05:11:33]  INFO building the "OpportunityRisks-aux-ui-deployer" module...
+[2025-06-23 05:11:33]  INFO copying files matching the [launchpad.zip,...] patterns from the "/home/user/projects/OpportunityRisks/build/dist" folder to the "/home/user/projects/OpportunityRisks/build/ui-deployer/resources" folder
+[2025-06-23 05:11:33]  INFO the "/home/user/projects/OpportunityRisks/build/ui-deployer/resources" folder has been created
+[2025-06-23 05:11:33]  INFO copying the "launchpad.zip" pattern from the "/home/user/projects/OpportunityRisks/build/dist" folder to the "/home/user/projects/OpportunityRisks/build/ui-deployer/resources" folder
+[2025-06-23 05:11:33]  INFO copying files matching the [frontend.zip,...] patterns from the "/home/user/projects/OpportunityRisks/app/frontend/dist" folder to the "/home/user/projects/OpportunityRisks/build/ui-deployer/resources" folder
+[2025-06-23 05:11:33]  INFO copying the "frontend.zip" pattern from the "/home/user/projects/OpportunityRisks/app/frontend/dist" folder to the "/home/user/projects/OpportunityRisks/build/ui-deployer/resources" folder
+[2025-06-23 05:11:33]  INFO the build results of the "OpportunityRisks-aux-ui-deployer" module will be packaged and saved in the "/home/user/projects/OpportunityRisks/.OpportunityRisks_mta_build_tmp/OpportunityRisks-aux-ui-deployer" folder
+[2025-06-23 05:11:33]  INFO finished building the "OpportunityRisks-aux-ui-deployer" module
+[2025-06-23 05:11:33]  INFO running the "after-all" build...
+[2025-06-23 05:11:33]  INFO executing the "npm install" command...
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@sap/xsenv@3.4.0',
+npm warn EBADENGINE   required: { node: '^10.0.0 || ^12.0.0 || ^14.0.0 || ^16.0.0 || ^18.0.0' },
+npm warn EBADENGINE   current: { node: 'v22.13.1', npm: '10.9.2' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@sap/xsenv@3.3.2',
+npm warn EBADENGINE   required: { node: '^10.0.0 || ^12.0.0 || ^14.0.0 || ^16.0.0' },
+npm warn EBADENGINE   current: { node: 'v22.13.1', npm: '10.9.2' }
+npm warn EBADENGINE }
+.
+added 47 packages, and audited 244 packages in 1s
+
+29 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+[2025-06-23 05:11:35]  INFO generating the metadata...
+[2025-06-23 05:11:35]  INFO generating the "/home/user/projects/OpportunityRisks/.OpportunityRisks_mta_build_tmp/META-INF/mtad.yaml" file...
+[2025-06-23 05:11:35]  INFO generating the MTA archive...
+[2025-06-23 05:11:35]  INFO the MTA archive generated at: /home/user/projects/OpportunityRisks/mta_archives/OpportunityRisks_1.0.0.mtar
+[2025-06-23 05:11:35]  INFO cleaning temporary files...

@@ -1,0 +1,29 @@
+{
+  "_version": "1.60.0",
+  "sap.app": {
+    "id": "opportunityrisks.frontend",
+    "type": "application",
+    "applicationVersion": {
+      "version": "0.0.1"
+    },
+    "title": "Opportunity Risk Management Frontend",
+    "description": "Vue.js frontend for Opportunity Risk Management"
+  },
+  "sap.ui": {
+    "technology": "HTML5",
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": true
+    }
+  },
+  "sap.ui5": {
+    "dependencies": {
+      "minUI5Version": "1.120.13"
+    }
+  },
+  "sap.cloud": {
+    "public": true,
+    "service": "lcap.OpportunityRisks"
+  }
+}
