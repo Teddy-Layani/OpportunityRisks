@@ -1,7 +1,7 @@
 {
   "_version": "1.60.0",
   "sap.app": {
-    "id": "opportunityrisks.frontend",
+    "id": "frontend.webapp.opportunityrisks",
     "type": "application",
     "applicationVersion": {
       "version": "0.0.1"
