@@ -1,0 +1,23 @@
+{
+  "name": "opportunity-risks-frontend",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && cp manifest.json xs-app.json dist/",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "vite": "^5.4.19"
+  }
+}

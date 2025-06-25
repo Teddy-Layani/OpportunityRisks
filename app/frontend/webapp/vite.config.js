@@ -1,35 +1,35 @@
-// frontend/vite.config.js - Cloud Foundry deployment configuration
+// app/frontend/webapp/vite.config.js
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [vue()],
-  base: './', // Important for HTML5 app deployment
   build: {
     outDir: 'dist',
-    assetsDir: 'assets'
+    assetsDir: 'assets',
+    emptyOutDir: true
+  },
+  base: './',
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src')
+    }
   },
   server: {
-    port: 3002,
-    host: '0.0.0.0',
+    host: '0.0.0.0', // Important for BAS
+    port: 5173,
     proxy: {
       '/opportunity-risks': {
-        target: process.env.NODE_ENV === 'production' 
-          ? '/opportunity-risks' // In production, use relative URL
-          : 'https://port4004-workspaces-ws-8dilk.ap10.applicationstudio.cloud.sap',
+        target: 'http://localhost:4004',
         changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path,
+        secure: false,
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
-            console.log('Proxy error:', err);
+            console.log('❌ Proxy error:', err.message);
           });
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('Proxying request:', req.method, req.url);
-            proxyReq.setHeader('Accept', 'application/json');
-          });
-          proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log('Proxy response:', proxyRes.statusCode, req.url);
+            console.log('🔄 Proxying to localhost:4004:', req.url);
           });
         }
       }

@@ -1,0 +1,3 @@
+VITE_API_BASE_URL=/opportunity-risks
+VITE_ENVIRONMENT=development
+NODE_ENV=development

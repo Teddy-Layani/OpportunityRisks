@@ -1,0 +1,4 @@
+root: dist
+location_include: /**
+directory: visible
+pushstate: enabled

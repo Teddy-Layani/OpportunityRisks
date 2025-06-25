@@ -1,11 +1,10 @@
 _schema-version: '3.1'
 ID: OpportunityRisks
 version: 1.0.0
-description: A simple CAP project.
+description: A simple CAP project with Vue 3 frontend.
 parameters:
-  deploy_mode: html5-repo
   enable-parallel-deployments: true
-  subdomain: ts4tvklvn0st2fz4
+
 build-parameters:
   before-all:
     - builder: custom
@@ -17,19 +16,19 @@ build-parameters:
     - builder: custom
       commands:
         - npm install --production
-        - >-
-          bash -c "cds -v | grep 'cds-dk' || npm i --production --no-save
-          @sap/cds-dk"
+        - bash -c "cds -v | grep 'cds-dk' || npm i --production --no-save @sap/cds-dk"
         - bash -c "export PATH=$PATH:$(pwd)/node_modules/.bin"
         - cds build --production
   after-all:
     - builder: custom
       commands:
         - npm install
+
 modules:
   - name: OpportunityRisks-db-deployer
     type: hdb
     path: gen/db
+    description: Database artifacts for OpportunityRisks application
     parameters:
       buildpack: nodejs_buildpack
     build-parameters:
@@ -40,11 +39,14 @@ modules:
     requires:
       - name: OpportunityRisks-service-uaa
       - name: OpportunityRisks-service-db
+
   - name: OpportunityRisks-srv
     type: nodejs
     path: gen/srv
+    description: CAP backend service providing Opportunity Risk Management APIs
     parameters:
       memory: 256MB
+      disk-quota: 1GB
     provides:
       - name: srv-api
         properties:
@@ -58,11 +60,39 @@ modules:
       - name: OpportunityRisks-service-uaa
       - name: OpportunityRisks-service-db
       - name: OpportunityRisks-service-destination
-      - name: OpportunityRisks-service-metadata
       - name: OpportunityRisks-service-connectivity
       - name: OpportunityRisks-service-logs
+
+  - name: OpportunityRisks-frontend
+    type: html5
+    path: app/frontend/webapp
+    description: Vue 3 frontend application for Opportunity Risk Management
+    build-parameters:
+      builder: npm
+      ignore:
+        - node_modules
+        - package-lock.json
+      build-result: dist
+    parameters:
+      buildpack: staticfile_buildpack
+      memory: 64MB
+      disk-quota: 256MB
+      env:
+        FORCE_HTTPS: true
+        NODE_ENV: production
+        # Pass backend URL as environment variable
+        BACKEND_URL: ~{srv-api/srv-url}
+        SERVICE_PATH: /opportunity-risks
+      health-check-type: http
+      health-check-http-endpoint: /
+    requires:
+      - name: srv-api
+        properties:
+          backend-url: ~{srv-url}
+
   - name: OpportunityRisks-aux-destinations
     type: com.sap.application.content
+    description: Destination configuration for external service integration
     parameters:
       content:
         subaccount:
@@ -73,42 +103,28 @@ modules:
               ServiceInstanceName: OpportunityRisks-uaa
               ServiceKeyName: OpportunityRisks-uaa-key
               sap.cloud.service: lcap.OpportunityRisks
+              Description: XSUAA service for authentication
             - Authentication: OAuth2UserTokenExchange
-              Name: OpportunityRisks-app-srv
+              Name: OpportunityRisks-backend-api
               TokenServiceInstanceName: OpportunityRisks-uaa
               TokenServiceKeyName: OpportunityRisks-uaa-key
               URL: ~{srv-api/srv-url}
               sap.cloud.service: lcap.OpportunityRisks
-            - Name: OpportunityRisks-service-html5-apps-repo-host
-              ServiceInstanceName: OpportunityRisks-html5-apps-repo-host
-              ServiceKeyName: OpportunityRisks-html5-apps-repo-host-key
-              sap.cloud.service: lcap.OpportunityRisks
+              Description: Backend API service for Opportunity Risk Management
             - Authentication: OAuth2UserTokenExchange
               Name: OpportunityRisks-OpportunityRiskService
               TokenServiceInstanceName: OpportunityRisks-uaa
               TokenServiceKeyName: OpportunityRisks-uaa-key
               URL: ~{srv-api/srv-url}/sap-crm-integration
               sap.cloud.service: lcap.OpportunityRisks
-              sap.applicationdevelopment.actions.enabled: true
-              sap.build.usage: CAP
-              sap.processautomation.enabled: true
-              HTML5.DynamicDestination: true
-              WebIDEEnabled: true
-              MobileEnabled: true
-              AppgyverEnabled: true
+              Description: SAP CRM integration service
             - Authentication: OAuth2UserTokenExchange
               Name: OpportunityRisks-OpportunityRisksService
               TokenServiceInstanceName: OpportunityRisks-uaa
               TokenServiceKeyName: OpportunityRisks-uaa-key
               URL: ~{srv-api/srv-url}/opportunity-risks
               sap.cloud.service: lcap.OpportunityRisks
-              sap.applicationdevelopment.actions.enabled: true
-              sap.build.usage: CAP
-              sap.processautomation.enabled: true
-              HTML5.DynamicDestination: true
-              WebIDEEnabled: true
-              MobileEnabled: true
-              AppgyverEnabled: true
+              Description: Main Opportunity Risks service endpoint
     build-parameters:
       no-source: true
     requires:
@@ -117,45 +133,14 @@ modules:
           service-key:
             name: OpportunityRisks-uaa-key
       - name: srv-api
-      - name: OpportunityRisks-service-html5-apps-repo-host
-        parameters:
-          service-key:
-            name: OpportunityRisks-html5-apps-repo-host-key
       - name: OpportunityRisks-service-destination
         parameters:
           content-target: true
-  - name: OpportunityRisks-launchpad
-    type: html5
-    path: build/launchpad
-    build-parameters:
-      builder: custom
-      commands:
-        - npm install
-        - >-
-          npx -p @ui5/cli@^3.0.0 ui5 build --dest dist
-          --include-task=generateCachebusterInfo
-        - bash -c "cd dist && npx bestzip ../../../build/dist/launchpad.zip *"
-        - rm -rf dist
-      _artifactName: launchpad.zip
-      supported-platforms: []
-      build-result: ../../build/dist
-  - name: OpportunityRisks-aux-ui-deployer
-    type: com.sap.application.content
-    path: build/ui-deployer
-    build-parameters:
-      build-result: resources
-      requires:
-        - name: OpportunityRisks-launchpad
-          artifacts:
-            - launchpad.zip
-          target-path: resources
-    requires:
-      - name: OpportunityRisks-service-html5-apps-repo-host
-        parameters:
-          content-target: true
+
 resources:
   - type: org.cloudfoundry.managed-service
     name: OpportunityRisks-service-uaa
+    description: XSUAA service instance for authentication and authorization
     parameters:
       service: xsuaa
       service-plan: application
@@ -164,51 +149,43 @@ resources:
       config:
         oauth2-configuration:
           redirect-uris:
-            - https://${subdomain}.launchpad.${default-domain}/login/*
-            - https://${subdomain}.${default-domain}/login/*
+            - https://*.${default-domain}/**
           credential-types:
             - binding-secret
             - x509
         xsappname: OpportunityRisks-${space}
         role-collections: []
+
   - type: org.cloudfoundry.managed-service
     name: OpportunityRisks-service-db
+    description: SAP HANA database service for data persistence
     parameters:
       service: hana
       service-plan: hdi-shared
       service-name: OpportunityRisks-db
+
   - type: org.cloudfoundry.managed-service
     name: OpportunityRisks-service-destination
+    description: Destination service for external API connectivity
     parameters:
       service: destination
       service-plan: lite
       service-name: OpportunityRisks-destination
       config:
-        HTML5Runtime_enabled: true
         version: 1.0.0
-  - type: org.cloudfoundry.user-provided-service
-    name: OpportunityRisks-service-metadata
-    parameters:
-      service: metadata
-      service-plan: standard
-      service-name: OpportunityRisks-metadata
-      config:
-        default-domain: ${default-domain}
+
   - type: org.cloudfoundry.managed-service
     name: OpportunityRisks-service-connectivity
+    description: Connectivity service for on-premise integration
     parameters:
       service: connectivity
       service-plan: lite
       service-name: OpportunityRisks-connectivity
+
   - type: org.cloudfoundry.managed-service
     name: OpportunityRisks-service-logs
+    description: Application logging service for monitoring and debugging
     parameters:
       service: application-logs
       service-plan: lite
       service-name: OpportunityRisks-logs
-  - type: org.cloudfoundry.managed-service
-    name: OpportunityRisks-service-html5-apps-repo-host
-    parameters:
-      service: html5-apps-repo
-      service-plan: app-host
-      service-name: OpportunityRisks-html5-apps-repo-host

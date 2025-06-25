@@ -1,0 +1,12 @@
+# Add to your app/frontend/webapp/.gitignore
+
+# Environment variables
+.env.local
+.env.*.local
+
+# Development specific
+.env.development.local
+.env.production.local
+
+# Keep .env.development and .env.production in git
+# But exclude .env.local for personal overrides
