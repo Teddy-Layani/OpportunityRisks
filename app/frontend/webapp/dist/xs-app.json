@@ -7,28 +7,28 @@
   "routes": [
     {
       "source": "^/opportunity-risks/(.*)$",
-      "target": "/odata/v4/opportunity-risks/$1",
+      "target": "/sap-crm-integration/$1",
       "destination": "OpportunityRisks-app-srv",
       "authenticationType": "xsuaa",
       "csrfProtection": false
     },
     {
       "source": "^/opportunityRisks/(.*)$",
-      "target": "/odata/v4/opportunity-risks/$1",
+      "target": "/sap-crm-integration/$1",
       "destination": "OpportunityRisks-app-srv",
       "authenticationType": "xsuaa",
       "csrfProtection": false
     },
     {
       "source": "^/api/(.*)$",
-      "target": "/odata/v4/opportunity-risks/$1",
+      "target": "/sap-crm-integration/$1",
       "destination": "OpportunityRisks-app-srv",
       "authenticationType": "xsuaa",
       "csrfProtection": false
     },
     {
       "source": "^/odata/v4/opportunity-risks/(.*)$",
-      "target": "/odata/v4/opportunity-risks/$1",
+      "target": "/sap-crm-integration/$1",
       "destination": "OpportunityRisks-app-srv",
       "authenticationType": "xsuaa",
       "csrfProtection": false
